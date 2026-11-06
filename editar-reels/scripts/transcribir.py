@@ -13,14 +13,26 @@ p = argparse.ArgumentParser()
 p.add_argument('carpeta')
 p.add_argument('--idioma', default='es')
 p.add_argument('--guion')
+p.add_argument('--motor', choices=['python', 'cpp'], default='python')
+p.add_argument('--modelo', help='Modelo de Whisper Python o ruta al modelo GGML de whisper.cpp')
+p.add_argument('--model-dir', help='Directorio de modelos de Whisper Python')
+p.add_argument('--device', default='cpu', help='Dispositivo de Whisper Python (por defecto: cpu)')
 a = p.parse_args()
-m = modelo()
-if not m:
-    raise SystemExit('Falta el modelo de whisper. Corré revisar_entorno.py.')
+if a.motor == 'python':
+    try:
+        import whisper
+    except ImportError as exc:
+        raise SystemExit('Falta openai-whisper. Ejecutá este script con el Python donde está instalado.') from exc
+    whisper_model = whisper.load_model(a.modelo or 'small', device=a.device, download_root=a.model_dir)
+else:
+    m = a.modelo or modelo()
+    if not m or not os.path.isfile(os.path.expanduser(m)):
+        raise SystemExit('Falta el modelo GGML de whisper.cpp. Usá --modelo o WHISPER_MODEL.')
+    m = os.path.expanduser(m)
 with open(os.path.join(a.carpeta, 'cortes.json')) as f:
     cortes = json.load(f)
 audio = os.path.join(a.carpeta, 'editado16k.wav')
-dtw = ['-dtw', 'large.v3.turbo'] if 'large-v3-turbo' in m else []
+dtw = ['-dtw', 'large.v3.turbo'] if a.motor == 'cpp' and 'large-v3-turbo' in m else []
 tmp = tempfile.mkdtemp()
 norm = lambda w: ''.join(c for c in unicodedata.normalize('NFD', w.lower()) if c.isalnum())
 # Whisper inventa estas frases sobre los silencios.
@@ -31,21 +43,33 @@ for i, c in enumerate(cortes):
     wav = os.path.join(tmp, 't.wav')
     correr(['ffmpeg', '-v', 'error', '-y', '-ss', f"{c['ed_a']:.3f}", '-t', f"{c['ed_b'] - c['ed_a']:.3f}", '-i', audio,
             '-af', 'apad=pad_dur=0.4', wav])
-    base = os.path.join(tmp, 't')
-    correr(['whisper-cli', '-m', m, '-l', a.idioma, '-f', wav, '-ojf', '-ml', '1', '-sow', '-np', '-of', base] + dtw,
-           capture_output=True)
-    with open(base + '.json', errors='replace') as f:
-        seg = json.load(f)['transcription']
-    texto = ' '.join(' '.join(s['text'] for s in seg).split())
+    if a.motor == 'python':
+        result = whisper_model.transcribe(wav, language=a.idioma, word_timestamps=True,
+                                          fp16=a.device != 'cpu', verbose=False)
+        texto = ' '.join(result['text'].split())
+        items = [{'text': word['word'], 'start': word['start'], 'end': word['end']}
+                 for segment in result['segments'] for word in segment.get('words', [])]
+    else:
+        base = os.path.join(tmp, 't')
+        correr(['whisper-cli', '-m', m, '-l', a.idioma, '-f', wav, '-ojf', '-ml', '1', '-sow', '-np', '-of', base] + dtw,
+               capture_output=True)
+        with open(base + '.json', errors='replace') as f:
+            segments = json.load(f)['transcription']
+        texto = ' '.join(' '.join(segment['text'] for segment in segments).split())
+        items = [{'text': segment['text'], 'start': segment['offsets']['from'] / 1000,
+                  'end': segment['offsets']['to'] / 1000} for segment in segments]
     if re.fullmatch(INVENTADO, texto.lower()):
-        seg, texto = [], ''
-    for s in seg:
-        w = s['text'].strip()
+        items, texto = [], ''
+    for item in items:
+        w = item['text'].strip()
         if not w or w.startswith('['):
             continue
-        ini = c['ed_a'] + s['offsets']['from'] / 1000
-        fin = min(c['ed_b'], c['ed_a'] + s['offsets']['to'] / 1000)
-        palabras.append({'p': w, 'a': round(ini, 3), 'b': round(max(fin, ini + .03), 3), 'tramo': i})
+        ini = max(c['ed_a'], c['ed_a'] + item['start'])
+        fin = min(c['ed_b'], c['ed_a'] + item['end'])
+        if ini >= c['ed_b']:
+            continue
+        palabras.append({'p': w, 'a': round(ini, 3),
+                         'b': round(min(c['ed_b'], max(fin, ini + .03)), 3), 'tramo': i})
     crudo_a, crudo_b = c['ed_a'] + c['off'], c['ed_b'] + c['off']
     tr.append((crudo_a, crudo_b, texto, [norm(w) for w in texto.split() if norm(w)]))
     print(f'{i:2d} crudo {crudo_a:7.2f}–{crudo_b:7.2f} ({crudo_b - crudo_a:4.2f} s)  {texto}')

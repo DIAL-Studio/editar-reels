@@ -1,7 +1,11 @@
 # Revisa lo que el skill necesita y explica cómo instalar lo que falta.
 # Uso: python3 revisar_entorno.py
-import shutil, subprocess, sys
+import argparse, importlib.util, shutil, subprocess, sys
 from comun import modelo
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--motor', choices=['python', 'cpp'], default='python')
+args = parser.parse_args()
 
 faltan = 0
 
@@ -19,11 +23,15 @@ if ff:
     filtros = subprocess.run(['ffmpeg', '-hide_banner', '-filters'], capture_output=True, text=True).stdout
     linea(' ass ' in filtros, 'ffmpeg con subtítulos (libass)', 'Mac: brew install ffmpeg-full. Usá ese ffmpeg.')
     linea(' zscale ' in filtros, 'ffmpeg con zscale, para grabaciones HDR de celular', 'Mac: brew install ffmpeg-full.')
-linea(bool(shutil.which('whisper-cli')), 'whisper-cli', 'Mac: brew install whisper-cpp. Otros: compilá whisper.cpp.')
-m = modelo()
-linea(bool(m), f'modelo de whisper: {m}',
-      'Bajalo con: mkdir -p ~/whisper-modelos && curl -L -o ~/whisper-modelos/ggml-large-v3-turbo.bin '
-      'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin')
+if args.motor == 'python':
+    linea(importlib.util.find_spec('whisper') is not None, 'OpenAI Whisper para Python',
+          'Instalá openai-whisper en este entorno de Python.')
+    print('El modelo se descargará la primera vez si no está en caché.')
+else:
+    linea(bool(shutil.which('whisper-cli')), 'whisper-cli', 'Instalá whisper.cpp.')
+    m = modelo()
+    linea(bool(m), f'modelo GGML de whisper.cpp: {m}',
+          'Configurá WHISPER_MODEL con la ruta a un modelo GGML.')
 print('OPCIONAL: node y Playwright, solo para animaciones. En scripts/: npm install && npx playwright install chromium')
 print('Todo listo.' if not faltan else f'Faltan {faltan}.')
 sys.exit(1 if faltan else 0)

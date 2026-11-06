@@ -19,7 +19,7 @@ Al recibir una corrección, aplicala al video y registrala en el historial del p
 
 Para títulos, medí referencias visuales y creá pruebas cortas con subtítulos legibles, palabras o cifras protagonistas, jerarquía y entradas sincronizadas. Revisá fondos claros, rostros, zonas seguras y lectura en móvil. Para HDR a SDR compará con el original y revisá altas luces y saturación antes de extender la conversión. Al recortar drone en vertical, revisá la fluidez cuadro a cuadro y el seguimiento del pin. Reducí oleaje y tráfico desde la voz original y contrastá claridad antes de mezclar música. Verificá precios y datos con el usuario.
 
-Remotion y HyperFrames pueden usarse si ya están instalados. Los scripts incluidos usan FFmpeg, whisper.cpp y opcionalmente Playwright, como el proyecto original. Adaptá la transcripción a Whisper Python si es el motor local disponible y verificá las marcas de tiempo. No supongas que los scripts del proyecto original aceptan automáticamente Whisper Python.
+Los scripts usan FFmpeg y Whisper Python por defecto. Ejecutalos con el Python del entorno donde esté instalado openai-whisper. `--motor cpp` selecciona whisper.cpp y su modelo GGML. Remotion y HyperFrames pueden usarse si ya están instalados. Verificá siempre las marcas de tiempo.
 
 ## 1. Antes de editar
 
