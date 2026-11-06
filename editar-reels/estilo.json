@@ -1,0 +1,21 @@
+{
+  "fuente": "Arial",
+  "tamano": 82,
+  "negrita": true,
+  "color": "#FFFFFF",
+  "borde_color": "#141416",
+  "borde": 3,
+  "sombra_color": "#141416",
+  "sombra": 2,
+  "interletra": 0,
+  "base": 1168,
+  "palabras": 3,
+  "letras": 23,
+  "minimo": 0.5,
+  "mayusculas": "minuscula",
+  "sacar_puntuacion": true,
+  "retraso": 0.05,
+  "correcciones": {},
+  "destacar": { "color": "#FF3B30", "palabras": [] },
+  "chicas": ["a", "al", "con", "de", "del", "el", "en", "la", "las", "lo", "los", "para", "por", "que", "se", "sin", "su", "tu", "un", "una", "y"]
+}

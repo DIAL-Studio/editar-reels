@@ -1,0 +1,4 @@
+.editar-reels/
+node_modules/
+__pycache__/
+*.pyc

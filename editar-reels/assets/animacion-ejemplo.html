@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- Plantilla de animación. Cada cuadro depende solo de t: sin setTimeout, sin CSS animation, sin azar. -->
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #101114; }
+  #numero { position: absolute; inset: 0; display: grid; place-items: center; color: #fff;
+            font: 800 320px system-ui, sans-serif; letter-spacing: -8px; }
+  #barra { position: absolute; left: 90px; bottom: 420px; height: 28px; background: #ff5e41; border-radius: 14px; }
+</style>
+<div id="numero"></div>
+<div id="barra"></div>
+<script>
+  window.duracion = 3;
+  const salida = (x) => 1 - Math.pow(1 - x, 3);
+  const tramo = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
+  window.dibujar = (t) => {
+    const p = salida(tramo(t, 0.2, 1.6));
+    document.getElementById('numero').textContent = Math.round(p * 100) + '%';
+    document.getElementById('barra').style.width = p * 900 + 'px';
+  };
+  window.dibujar(0);
+</script>
